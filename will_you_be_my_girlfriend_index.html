@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Will you be my girlfriend? — Clone</title>
+  <style>
+    :root{--bg:#ffedf0;--card:#fff;--accent:#ff5c8a}
+    html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    body{background:radial-gradient(circle at 10% 10%, #fff7fa, var(--bg));display:flex;align-items:center;justify-content:center}
+    .stage{width:100%;max-width:900px;padding:36px;box-sizing:border-box;text-align:center}
+    h1{font-size:40px;margin:0 0 12px;color:#7b123a}
+    p.lead{color:#6b2b3d;margin:0 0 24px;font-size:18px}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,.9),#fff);padding:28px;border-radius:16px;box-shadow:0 10px 30px rgba(123,18,58,.12)}
+    .controls{display:flex;gap:18px;justify-content:center;margin-top:18px}
+    .btn{padding:14px 22px;border-radius:10px;border:0;cursor:pointer;font-weight:600;box-shadow:0 6px 14px rgba(0,0,0,.08)}
+    .btn.yes{background:var(--accent);color:white}
+    .btn.no{background:#fff;color:#b02a4b;border:2px solid #ffd6e0}
+    img.cat{width:140px;border-radius:12px;margin-top:18px}
+    /* floating hearts */
+    .hearts{position:fixed;left:0;top:0;right:0;bottom:0;pointer-events:none;overflow:hidden}
+    .heart{position:absolute;width:14px;height:14px;background:var(--accent);transform:rotate(45deg);border-radius:2px;opacity:.8}
+    .heart:before,.heart:after{content:'';position:absolute;width:14px;height:14px;background:var(--accent);border-radius:50%}
+    .heart:before{left:-7px;top:0}
+    .heart:after{left:0;top:-7px}
+    /* modal */
+    .modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .18s}
+    .modal.open{opacity:1;pointer-events:auto}
+    .dialog{background:var(--card);padding:28px;border-radius:14px;max-width:520px;text-align:left}
+    .dialog h2{margin:0 0 8px;color:#7b123a}
+    .dialog p{margin:0 0 16px}
+    /* small screens */
+    @media (max-width:520px){h1{font-size:26px}.card{padding:18px}.btn{padding:11px 16px}}
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <div class="card">
+      <h1>Will you be my girlfriend?</h1>
+      <p class="lead">I'm asking because you make my days brighter 💖</p>
+      <div class="controls">
+        <button class="btn yes">Yes</button>
+        <button class="btn no">No (I no no wanna)</button>
+      </div>
+      <img class="cat" src="https://raw.githubusercontent.com/byquangthanh/valentine.github.io/main/img/cat.png" alt="cat asking question" onerror="this.style.display='none'"/>
+    </div>
+  </div>
+
+  <div class="hearts" aria-hidden></div>
+
+  <div class="modal" id="modal">
+    <div class="dialog">
+      <h2>Yay! 💝</h2>
+      <p>Thanks for saying yes — you made me the happiest. 💖</p>
+      <div style="text-align:right"><button class="btn" id="close">Close</button></div>
+    </div>
+  </div>
+
+  <audio id="audio" src="https://cdn.jsdelivr.net/gh/anars/blank-audio/250-milliseconds-of-silence.mp3"></audio>
+
+  <script>
+    // Pseudocode implemented:
+    // - generate drifting hearts
+    // - make NO button avoid clicks by moving randomly when hovered/clicked
+    // - YES opens modal with a short message (and optional sound)
+
+    const heartsEl = document.querySelector('.hearts');
+    const yes = document.querySelector('.btn.yes');
+    const no = document.querySelector('.btn.no');
+    const modal = document.getElementById('modal');
+    const close = document.getElementById('close');
+    const audio = document.getElementById('audio');
+
+    // create drifting hearts
+    function spawnHeart(){
+      const h = document.createElement('div');
+      h.className = 'heart';
+      const size = 10 + Math.random()*28;
+      h.style.width = size + 'px'; h.style.height = size + 'px';
+      h.style.left = (Math.random()*100) + '%';
+      h.style.top = (100 + Math.random()*20) + '%';
+      h.style.opacity = 0.6 + Math.random()*0.4;
+      heartsEl.appendChild(h);
+      const duration = 5000 + Math.random()*6000;
+      h.animate([{transform: 'translateY(0) rotate(45deg)', opacity: h.style.opacity},{transform: 'translateY(-120vh) rotate(45deg)', opacity: 0}],{duration,iterations:1,easing:'linear'})
+      setTimeout(()=>h.remove(), duration+50);
+    }
+    setInterval(spawnHeart, 400);
+
+    // NO button dodge behavior
+    function moveNoRandomly(){
+      const parentRect = document.body.getBoundingClientRect();
+      const x = Math.random()*(parentRect.width - no.offsetWidth - 40) + 20;
+      const y = Math.random()*(parentRect.height - no.offsetHeight - 80) + 40;
+      no.style.position = 'fixed';
+      no.style.left = x + 'px';
+      no.style.top = y + 'px';
+      // small wobble
+      no.animate([{transform:'translateY(-3px)'},{transform:'translateY(3px)'}],{duration:400,iterations:2});
+    }
+
+    no.addEventListener('mouseenter', moveNoRandomly);
+    no.addEventListener('click', (e)=>{ e.preventDefault(); moveNoRandomly(); });
+
+    // Keep moving NO if user tries to focus it via keyboard
+    no.addEventListener('focus', moveNoRandomly);
+
+    // YES behavior -> open modal
+    yes.addEventListener('click', ()=>{
+      modal.classList.add('open');
+      // play tiny sound if allowed
+      audio.currentTime = 0; try{ audio.play().catch(()=>{}); }catch(e){}
+    });
+    close.addEventListener('click', ()=> modal.classList.remove('open'));
+    modal.addEventListener('click', (e)=>{ if(e.target === modal) modal.classList.remove('open'); });
+
+    // Accessibility: allow keyboard to press YES
+    document.addEventListener('keydown', (e)=>{
+      if(e.key === 'Escape') modal.classList.remove('open');
+    });
+
+    // friendly initial nudge: move NO once on load so it's not exactly beside YES
+    window.addEventListener('load', ()=>setTimeout(moveNoRandomly, 300));
+  </script>
+</body>
+</html>
